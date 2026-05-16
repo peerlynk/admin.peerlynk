@@ -11,15 +11,15 @@ import Reports from './pages/Reports';
 import Communities from './pages/Communities';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
-import NotFound from './pages/NotFound';
+import NotFound from './pages/Notfound';
 
 function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
         <BrowserRouter>
-          <Toaster 
-            position="top-right" 
+          <Toaster
+            position="top-right"
             toastOptions={{
               style: {
                 background: 'rgba(17, 17, 17, 0.9)',
