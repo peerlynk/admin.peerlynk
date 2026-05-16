@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, Lock, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, ShieldCheck, EyeOff, Eye } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import GlassCard from '../components/ui/GlassCard';
 import AnimatedInput from '../components/ui/AnimatedInput';
@@ -11,6 +11,7 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -34,19 +35,19 @@ const Login = () => {
     <div className="login-page">
       {/* Background Animation Elements */}
       <div className="bg-particles">
-        <motion.div 
+        <motion.div
           className="particle particle-1"
           animate={{ x: [0, 100, 0], y: [0, -100, 0] }}
           transition={{ repeat: Infinity, duration: 15, ease: "linear" }}
         />
-        <motion.div 
+        <motion.div
           className="particle particle-2"
           animate={{ x: [0, -150, 0], y: [0, 100, 0] }}
           transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
         />
       </div>
 
-      <motion.div 
+      <motion.div
         className="login-container"
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -54,7 +55,7 @@ const Login = () => {
       >
         <GlassCard className="login-card" hoverEffect={false}>
           <div className="login-header">
-            <motion.h1 
+            <motion.h1
               className="text-gradient"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -73,7 +74,7 @@ const Login = () => {
           </div>
 
           <form onSubmit={handleLogin} className="login-form">
-            <motion.div 
+            <motion.div
               className="form-group"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -87,23 +88,46 @@ const Login = () => {
                 icon={Mail}
               />
             </motion.div>
-            
-            <motion.div 
+
+            <motion.div
               className="form-group"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.6 }}
             >
-              <AnimatedInput
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                icon={Lock}
-              />
+              <div className="password-wrapper" style={{ position: 'relative' }}>
+                <AnimatedInput
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  icon={Lock}
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    zIndex: 2
+                  }}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               className="form-options"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
