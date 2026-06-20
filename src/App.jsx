@@ -12,6 +12,9 @@ import Communities from './pages/Communities';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 import NotFound from './pages/Notfound';
+import UniversityDetail from './pages/UniversityDetail';
+import CollegeDetail from './pages/CollegeDetail';
+import AddCourse from './pages/AddCourse';
 
 function App() {
   return (
@@ -34,7 +37,12 @@ function App() {
             <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
               <Route index element={<Dashboard />} />
               <Route path="users" element={<Users />} />
+              <Route path="courses/add" element={<AddCourse />} />
+
               <Route path="communities" element={<Communities />} />
+              <Route path="/admin/universities/:id" element={<UniversityDetail />} />
+              <Route path="/admin/colleges/:id" element={<CollegeDetail />} />
+
               <Route path="reports" element={<Reports />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="settings" element={<Settings />} />

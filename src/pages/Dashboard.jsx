@@ -1,9 +1,11 @@
+// Dashboard.jsx
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Users, FileText, AlertTriangle, Link as LinkIcon, Server, Activity } from 'lucide-react';
-import { 
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
-} from 'recharts';
+import {
+  Users, UserCheck, FileText, AlertTriangle, Link as LinkIcon, Server, Activity,
+  GraduationCap, Building, Globe, MessageSquare, BookOpen, Clock
+} from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../api/axios';
 import GlassCard from '../components/ui/GlassCard';
 import AnimatedCounter from '../components/ui/AnimatedCounter';
@@ -20,7 +22,7 @@ const StatCard = ({ title, value, icon: Icon, delay, color }) => (
       {value !== null ? <AnimatedCounter value={value} /> : <span style={{ fontSize: '18px' }}>Loading...</span>}
     </div>
     <div className="stat-sparkline">
-      <motion.div 
+      <motion.div
         className="sparkline-bar"
         style={{ backgroundColor: color }}
         initial={{ width: 0 }}
@@ -58,14 +60,23 @@ const CustomTooltip = ({ active, payload, label }) => {
 const Dashboard = () => {
   const [stats, setStats] = useState({
     totalUsers: null,
+    verifiedUsers: null,
+    profileCompleted: null,
     activeToday: null,
+    activeLast7Days: null,
     totalPosts: null,
     totalConfessions: null,
     pendingConfessions: null,
     activeLynks: null,
     totalMessages: null,
     totalComments: null,
-    activeLast7Days: null
+    totalStudents: null,
+    totalFaculty: null,
+    totalAlumni: null,
+    totalColleges: null,
+    totalUniversities: null,
+    totalSkills: null,
+    totalConversations: null,
   });
 
   const [chartData, setChartData] = useState([]);
@@ -73,44 +84,42 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const fetchDashboard = async () => {
       try {
         setLoading(true);
-        const [analyticsRes, statsRes, engagementRes, reportsRes] = await Promise.all([
-          api.get('/admin/analytics').catch(() => ({ data: {} })),
-          api.get('/admin/stats').catch(() => ({ data: {} })),
-          api.get('/admin/engagement').catch(() => ({ data: {} })),
-          api.get('/admin/reports/all?limit=5').catch(() => ({ data: { reports: [] } }))
-        ]);
-
-        const aData = analyticsRes.data;
-        const sData = statsRes.data;
-        const eData = engagementRes.data;
-        const rData = reportsRes.data;
+        const res = await api.get('/admin/dashboard-stats');
+        const data = res.data;
 
         setStats({
-          totalUsers: aData.totalUsers || 0,
-          activeToday: aData.activeUsersToday || 0,
-          totalPosts: aData.totalPosts || 0,
-          totalConfessions: aData.totalConfessions || 0,
-          pendingConfessions: aData.pendingConfessions || 0,
-          activeLynks: sData.lynks?.totalActive || 0,
-          totalMessages: eData.totals?.messages || 0,
-          totalComments: eData.totals?.comments || 0,
-          activeLast7Days: sData.users?.activeLast7Days || 0
+          totalUsers: data.users.total,
+          verifiedUsers: data.verifiedUsers || 0,
+          profileCompleted: data.profileCompleted || 0,
+          activeToday: data.users.activeToday,
+          activeLast7Days: data.users.activeLast7Days,
+          totalPosts: data.content.insights,
+          totalConfessions: data.content.confessions,
+          pendingConfessions: data.content.pendingConfessions,
+          activeLynks: data.content.activeLynks,
+          totalMessages: data.engagement.messages,
+          totalComments: data.engagement.comments,
+          totalStudents: data.platform.students,
+          totalFaculty: data.platform.faculty,
+          totalAlumni: data.platform.alumni,
+          totalColleges: data.platform.colleges,
+          totalUniversities: data.platform.universities,
+          totalSkills: data.skills?.total || 0,
+          totalConversations: data.conversations?.total || 0,
         });
 
-        if (eData.dailyActiveUsers) {
-          const formattedChart = eData.dailyActiveUsers.map(item => ({
-            name: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-            sessions: item._sum?.sessions || 0,
-            time: item._sum?.totalTime || 0
-          }));
-          setChartData(formattedChart);
-        }
+        // Format chart data
+        const chart = data.chartData.map(item => ({
+          name: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          sessions: Number(item.sessions) || 0
+        }));
+        setChartData(chart);
 
-        if (rData.reports) {
-          const formattedFeed = rData.reports.map(report => ({
+        if (data.recentReports) {
+          const formattedFeed = data.recentReports.map(report => ({
             id: report.id,
             text: `Report by ${report.reporter?.name || 'Unknown'}: ${report.status}`,
             time: new Date(report.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -118,7 +127,6 @@ const Dashboard = () => {
           }));
           setFeedData(formattedFeed);
         }
-
       } catch (err) {
         console.error("Dashboard fetch error", err);
       } finally {
@@ -126,12 +134,12 @@ const Dashboard = () => {
       }
     };
 
-    fetchDashboardData();
+    fetchDashboard();
   }, []);
 
   return (
     <div className="dashboard-page">
-      <motion.div 
+      <motion.div
         className="page-header"
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
@@ -140,20 +148,59 @@ const Dashboard = () => {
         <p>Real-time metrics and platform status.</p>
       </motion.div>
 
+      {/* Main Stats Grid */}
       <div className="stats-grid">
         <StatCard title="Total Users" value={stats.totalUsers} icon={Users} delay={0.1} color="var(--accent-blue)" />
-        <StatCard title="Active Today" value={stats.activeToday} icon={Activity} delay={0.2} color="var(--accent-green)" />
-        <StatCard title="Active (7 Days)" value={stats.activeLast7Days} icon={Users} delay={0.25} color="var(--accent-green)" />
-        <StatCard title="Total Posts" value={stats.totalPosts} icon={FileText} delay={0.3} color="var(--accent-purple)" />
+        <StatCard title="Verified Users" value={stats.verifiedUsers} icon={UserCheck} delay={0.15} color="#22c55e" />
+        <StatCard title="Complete Profiles" value={stats.profileCompleted} icon={UserCheck} delay={0.2} color="#06b6d4" />
+        <StatCard title="Total Insights" value={stats.totalPosts} icon={FileText} delay={0.3} color="var(--accent-purple)" />
         <StatCard title="Total Messages" value={stats.totalMessages} icon={Server} delay={0.35} color="var(--accent-cyan)" />
         <StatCard title="Total Comments" value={stats.totalComments} icon={FileText} delay={0.4} color="var(--accent-purple)" />
         <StatCard title="Total Confessions" value={stats.totalConfessions} icon={Server} delay={0.45} color="var(--accent-cyan)" />
         <StatCard title="Pending Confessions" value={stats.pendingConfessions} icon={AlertTriangle} delay={0.5} color="var(--accent-red)" />
         <StatCard title="Active Lynks" value={stats.activeLynks} icon={LinkIcon} delay={0.6} color="var(--accent-orange)" />
+        <StatCard title="Students" value={stats.totalStudents} icon={GraduationCap} delay={0.65} color="#3b82f6" />
+        <StatCard title="Faculty" value={stats.totalFaculty} icon={GraduationCap} delay={0.7} color="#8b5cf6" />
+        <StatCard title="Alumni" value={stats.totalAlumni} icon={GraduationCap} delay={0.75} color="#f59e0b" />
+        <StatCard title="Colleges" value={stats.totalColleges} icon={Building} delay={0.8} color="#10b981" />
+        <StatCard title="Universities" value={stats.totalUniversities} icon={Globe} delay={0.85} color="#ec4899" />
+        <StatCard title="Total Skills" value={stats.totalSkills} icon={BookOpen} delay={0.9} color="#f472b6" />
+        <StatCard title="Total Conversations" value={stats.totalConversations} icon={MessageSquare} delay={0.95} color="#f97316" />
       </div>
 
+      {/* Activity Summary Section */}
+      <div className="activity-summary" style={{ marginTop: '2rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+        <GlassCard delay={1.0} className="activity-card">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ background: 'var(--accent-green)20', padding: '12px', borderRadius: '12px' }}>
+              <Activity size={28} color="var(--accent-green)" />
+            </div>
+            <div>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Active Today</p>
+              <h2 style={{ fontSize: '2.5rem', margin: 0 }}>
+                {stats.activeToday !== null ? <AnimatedCounter value={stats.activeToday} /> : '...'}
+              </h2>
+            </div>
+          </div>
+        </GlassCard>
+        <GlassCard delay={1.1} className="activity-card">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ background: 'var(--accent-blue)20', padding: '12px', borderRadius: '12px' }}>
+              <Clock size={28} color="var(--accent-blue)" />
+            </div>
+            <div>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Active Last 7 Days</p>
+              <h2 style={{ fontSize: '2.5rem', margin: 0 }}>
+                {stats.activeLast7Days !== null ? <AnimatedCounter value={stats.activeLast7Days} /> : '...'}
+              </h2>
+            </div>
+          </div>
+        </GlassCard>
+      </div>
+
+      {/* Charts and Feed */}
       <div className="dashboard-content">
-        <GlassCard className="chart-section" delay={0.7}>
+        <GlassCard className="chart-section" delay={1.2}>
           <div className="section-header">
             <h2>User Sessions (Last 30 Days)</h2>
             <div className="chart-legend">
@@ -166,8 +213,8 @@ const Dashboard = () => {
                 <AreaChart data={chartData}>
                   <defs>
                     <linearGradient id="colorSessions" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--accent-blue)" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="var(--accent-blue)" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="var(--accent-blue)" stopOpacity={0.8} />
+                      <stop offset="95%" stopColor="var(--accent-blue)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--glass-border)" vertical={false} />
@@ -185,7 +232,7 @@ const Dashboard = () => {
           </div>
         </GlassCard>
 
-        <GlassCard className="activity-section" delay={0.8}>
+        <GlassCard className="activity-section" delay={1.3}>
           <div className="section-header">
             <h2>Live Feed (Recent Reports)</h2>
             <div className="live-indicator">
@@ -194,12 +241,12 @@ const Dashboard = () => {
           </div>
           <div className="feed-list">
             {feedData.length > 0 ? feedData.map((item, index) => (
-              <motion.div 
-                key={item.id} 
+              <motion.div
+                key={item.id}
                 className="feed-item"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 1 + (index * 0.2) }}
+                transition={{ delay: 1.4 + (index * 0.2) }}
               >
                 <div className={`feed-icon type-${item.type}`}></div>
                 <div className="feed-content">
@@ -208,9 +255,9 @@ const Dashboard = () => {
                 </div>
               </motion.div>
             )) : (
-               <div style={{ color: 'var(--text-muted)', textAlign: 'center', marginTop: '20px' }}>
-                 {loading ? 'Loading feed...' : 'No recent activity'}
-               </div>
+              <div style={{ color: 'var(--text-muted)', textAlign: 'center', marginTop: '20px' }}>
+                {loading ? 'Loading feed...' : 'No recent activity'}
+              </div>
             )}
           </div>
         </GlassCard>

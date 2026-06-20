@@ -9,7 +9,8 @@ import {
   BarChart2, 
   MessageSquare,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  BookPlus
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -18,6 +19,7 @@ const Sidebar = () => {
   const navItems = [
     { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/users', icon: Users, label: 'Users' },
+    { path: '/courses/add', icon: BookPlus, label: 'Add Course' },
     { path: '/communities', icon: MessageSquare, label: 'Communities' },
     { path: '/reports', icon: FileText, label: 'Reports' },
     { path: '/analytics', icon: BarChart2, label: 'Analytics' },

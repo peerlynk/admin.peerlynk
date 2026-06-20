@@ -18,7 +18,12 @@ const Users = () => {
   // State
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ total: 0, active: 0, verified: 0, banned: 0 });
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    emailVerified: 0,
+    adminVerified: 0,
+  });
 
   // Filters & Search
   const [searchTerm, setSearchTerm] = useState('');
@@ -65,7 +70,7 @@ const Users = () => {
 
       let fetchedUsers = res.data.users || [];
 
-      // Client-side filtering for email verification (since backend may not support)
+      // Client-side filtering for email verification
       if (emailVerificationFilter === 'Verified') {
         fetchedUsers = fetchedUsers.filter(u => u.isVerified === true);
       } else if (emailVerificationFilter === 'Not Verified') {
@@ -73,7 +78,6 @@ const Users = () => {
       }
 
       // For admin verification: if we used /unverified endpoint above, already filtered.
-      // But if adminVerificationFilter is 'Verified', we need to filter client-side from all users
       if (adminVerificationFilter === 'Verified' && endpoint !== '/admin/users/unverified') {
         fetchedUsers = fetchedUsers.filter(u => u.isVerifiedByAdmin === true);
       }
@@ -83,6 +87,9 @@ const Users = () => {
       if (res.data.pagination) {
         setPagination(prev => ({ ...prev, ...res.data.pagination, limit: prev.limit }));
       }
+
+      // Update stats based on the fetched users (for counts)
+      updateStatsFromUsers(fetchedUsers);
     } catch (error) {
       console.error("Failed to fetch users", error);
       toast.error("Failed to load users");
@@ -91,17 +98,32 @@ const Users = () => {
     }
   }, [debouncedSearch, roleFilter, emailVerificationFilter, adminVerificationFilter, pagination.page, pagination.limit]);
 
-  // Fetch Stats (for top cards)
+  // Compute stats from the users list (since we have them all)
+  const updateStatsFromUsers = (userList) => {
+    const total = userList.length;
+    const emailVerified = userList.filter(u => u.isVerified === true).length;
+    const adminVerified = userList.filter(u => u.isVerifiedByAdmin === true).length;
+    // For active 7 days, we need to compute from lastActive, but we might not have all users.
+    // We'll fetch active separately from stats endpoint.
+    setStats(prev => ({
+      ...prev,
+      total,
+      emailVerified,
+      adminVerified,
+    }));
+  };
+
+  // Fetch additional stats (active, total users, etc.) from /admin/stats
   const fetchStats = async () => {
     try {
       const res = await api.get('/admin/stats');
-      setStats({
+      setStats(prev => ({
+        ...prev,
         total: res.data.users?.total || 0,
         active: res.data.users?.activeLast7Days || 0,
-        verified: 0, // Placeholder
-        banned: 0
-      });
-    } catch (e) { }
+        // emailVerified and adminVerified will be updated from fetchUsers
+      }));
+    } catch (e) { console.error(e); }
   };
 
   useEffect(() => {
@@ -160,7 +182,6 @@ const Users = () => {
 
   return (
     <div className="users-page">
-      {/* Global Styles (same as before, but updated for new columns) */}
       <style>{`
         .users-page {
           position: relative;
@@ -526,7 +547,7 @@ const Users = () => {
         }
       `}</style>
 
-      {/* HEADER & STATS (unchanged) */}
+      {/* HEADER & STATS CARDS */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginBottom: '24px' }}>
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
           <h1>User Management</h1>
@@ -537,8 +558,8 @@ const Users = () => {
           {[
             { label: 'Total Users', value: stats.total, color: 'var(--accent-blue)', icon: UsersIcon },
             { label: 'Active (7D)', value: stats.active, color: 'var(--accent-green)', icon: Activity },
-            { label: 'Email Verified', value: 'N/A', color: 'var(--accent-purple)', icon: MailCheck },
-            { label: 'Admin Verified', value: 'N/A', color: 'var(--accent-cyan)', icon: ShieldCheck }
+            { label: 'Email Verified', value: stats.emailVerified, color: 'var(--accent-purple)', icon: MailCheck },
+            { label: 'Admin Verified', value: stats.adminVerified, color: 'var(--accent-cyan)', icon: ShieldCheck }
           ].map((stat, i) => (
             <GlassCard key={i} delay={0.1 * i} style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '16px' }}>
               <div style={{ padding: '12px', borderRadius: '50%', background: `${stat.color}20`, color: stat.color }}>
@@ -553,7 +574,7 @@ const Users = () => {
         </div>
       </div>
 
-      {/* FILTER BAR - Added two new dropdowns */}
+      {/* FILTER BAR */}
       <GlassCard style={{ padding: '16px', marginBottom: '24px', display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ flex: '1', minWidth: '200px' }}>
           <AnimatedInput
@@ -593,7 +614,7 @@ const Users = () => {
         </select>
       </GlassCard>
 
-      {/* BULK ACTIONS BAR (same) */}
+      {/* BULK ACTIONS BAR */}
       <AnimatePresence>
         {selectedUsers.length > 0 && (
           <motion.div
@@ -611,7 +632,7 @@ const Users = () => {
         )}
       </AnimatePresence>
 
-      {/* DATA TABLE - Added two new columns */}
+      {/* DATA TABLE */}
       <GlassCard style={{ padding: 0, overflow: 'hidden' }} hoverEffect={false}>
         <div style={{ overflowX: 'auto' }}>
           <table className="users-table">
@@ -734,7 +755,7 @@ const Users = () => {
           </table>
         </div>
 
-        {/* PAGINATION (same) */}
+        {/* PAGINATION */}
         <div className="pagination-bar">
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Rows per page:</span>
@@ -764,7 +785,7 @@ const Users = () => {
         </div>
       </GlassCard>
 
-      {/* QUICK VIEW DRAWER - also updated to show both verification statuses */}
+      {/* QUICK VIEW DRAWER */}
       <AnimatePresence>
         {drawerUser && (
           <>
